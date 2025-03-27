@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI헬퍼 - 업무 효율화 비서</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 전체 스타일 리셋 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* 상단 모바일 상태바 */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 15px;
+            background-color: #5a5a5a;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .status-left, .status-right {
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-right {
+            gap: 5px;
+        }
+        
+        /* 네비게이션 헤더 */
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: white;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .nav-title {
+            text-align: center;
+            flex-grow: 1;
+        }
+        
+        .nav-title h1 {
+            font-size: 16px;
+            margin: 0;
+        }
+        
+        .nav-title p {
+            font-size: 12px;
+            color: #777;
+            margin: 0;
+        }
+        
+        .chat-button {
+            background-color: #00c853;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            box-shadow: 0 3px 5px rgba(0, 200, 83, 0.3);
+        }
+        
+        /* 앱 헤더 */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: white;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .menu-icon {
+            font-size: 24px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #00c853, #64dd17);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 8px;
+            color: white;
+        }
+        
+        .dropdown {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 16px;
+            background-color: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        /* 메인 콘텐츠 */
+        .main-content {
+            padding: 30px 15px;
+            text-align: center;
+            background: linear-gradient(165deg, #f8f9fa, #e9ecef);
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .headline {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+        
+        .highlight {
+            color: #00c853;
+            font-weight: bold;
+        }
+        
+        .subheadline {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            color: #333;
+        }
+        
+        /* 인풋 영역 */
+        .input-area {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
+            border: 1px solid #eaeaea;
+        }
+        
+        .input-actions {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .input-placeholder {
+            flex-grow: 1;
+            text-align: left;
+            color: #888;
+            margin-left: 10px;
+            font-size: 15px;
+        }
+        
+        .send-button {
+            background-color: #00c853;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0, 200, 83, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+        
+        /* 탭 네비게이션 */
+        .tab-nav {
+            display: flex;
+            background-color: white;
+            padding: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px 0;
+            font-size: 15px;
+            color: #777;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab.active {
+            color: #00c853;
+            font-weight: bold;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            width: 50%;
+            height: 3px;
+            background-color: #00c853;
+            border-radius: 3px 3px 0 0;
+        }
+        
+        /* 필터 옵션 */
+        .filter-options {
+            display: flex;
+            gap: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            background-color: white;
+            border-bottom: 1px solid #f0f0f0;
+            scrollbar-width: none; /* Firefox */
+        }
+        
+        .filter-options::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        
+        .filter-option {
+            padding: 8px 16px;
+            background-color: #f5f5f5;
+            border-radius: 20px;
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        
+        .filter-option.active {
+            background-color: #e8f5e9;
+            color: #00c853;
+            border: 1px solid #b9f6ca;
+            font-weight: 500;
+        }
+        
+        /* 기능 카드 섹션 제목 */
+        .section-title {
+            padding: 20px 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* 기능 카드 */
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
+        }
+        
+        .feature-card {
+            background-color: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            position: relative;
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .feature-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .brain-icon {
+            background: linear-gradient(135deg, #fff9c4, #fff176);
+            color: #ffa000;
+        }
+        
+        .chat-icon {
+            background: linear-gradient(135deg, #bbdefb, #90caf9);
+            color: #1976d2;
+        }
+        
+        .search-icon {
+            background: linear-gradient(135deg, #e1bee7, #ce93d8);
+            color: #7b1fa2;
+        }
+        
+        .translate-icon {
+            background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+            color: #388e3c;
+        }
+        
+        .feature-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .feature-desc {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .bookmark-icon {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #ddd;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .bookmark-icon.active {
+            color: #ffc107;
+        }
+        
+        /* 업데이트 배지 */
+        .update-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #f44336;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 헬프 버튼 */
+        .help-button {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 54px;
+            height: 54px;
+            background: linear-gradient(135deg, #00c853, #64dd17);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            box-shadow: 0 4px 10px rgba(0, 200, 83, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .help-button:hover {
+            transform: scale(1.05) rotate(15deg);
+        }
+        
+        /* 바닥 네비게이션 */
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            background-color: white;
+            border-top: 1px solid #eee;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 99;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .nav-icon {
+            font-size: 22px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        
+        .nav-label {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .nav-item.active .nav-icon,
+        .nav-item.active .nav-label {
+            color: #00c853;
+            font-weight: 500;
+        }
+        
+        /* 콘텐츠 하단 여백 (바닥 네비게이션 높이만큼) */
+        .bottom-space {
+            height: 65px;
+        }
+        
+        /* 반응형 미디어 쿼리 */
+        @media (min-width: 768px) {
+            .features {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .main-content {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            
+            .tab-nav {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            
+            .filter-options {
+                max-width: 800px;
+                margin: 0 auto;
+                justify-content: center;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .features {
+                grid-template-columns: repeat(4, 1fr);
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+            
+            .main-content {
+                max-width: 1000px;
+            }
+            
+            .tab-nav, .filter-options {
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+            
+            .section-title {
+                max-width: 1000px;
+                margin: 0 auto;
+                padding-left: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 모바일 상태바 -->
+    <div class="status-bar">
+        <div class="status-left">
+            <span>SKT 13:50</span>
+        </div>
+        <div class="status-right">
+            <span>📶</span>
+            <span>85%</span>
+        </div>
+    </div>
+    
+    <!-- 네비게이션 헤더 -->
+    <div class="nav-header">
+        <div class="nav-actions">
+            <span>✕</span>
+            <span>◁</span>
+        </div>
+        <div class="nav-title">
+            <h1>AI 비서 서비스</h1>
+            <p>aihelper.co.kr</p>
+        </div>
+        <div class="chat-button">
+            <span>💬</span>
+        </div>
+    </div>
+    
+    <!-- 앱 헤더 -->
+    <div class="app-header">
+        <div class="menu-icon">≡</div>
+        <div class="logo">
+            <div class="logo-icon">AI</div>
+            AI헬퍼
+        </div>
+        <div class="dropdown">
+            <span>태스크 모드</span>
+            <span>▼</span>
+        </div>
+    </div>
+    
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+        <div class="headline">
+            <span class="highlight">업무 자동화</span>, 문서 처리, 이미지 생성까지
+        </div>
+        <div class="subheadline">
+            일 잘하는 AI 어시스턴트
+        </div>
+        
+        <!-- 인풋 영역 -->
+        <div class="input-area">
+            <div class="input-actions">
+                <span>🔍</span>
+                <span>📂</span>
+            </div>
+            <div class="input-placeholder">
+                무엇을 도와드릴까요?
+            </div>
+            <div class="send-button">
+                <span>➤</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 탭 네비게이션 -->
+    <div class="tab-nav">
+        <div class="tab active">추천 기능</div>
+        <div class="tab">내 작업</div>
+        <div class="tab">새로운 기능</div>
+    </div>
+    
+    <!-- 필터 옵션 -->
+    <div class="filter-options">
+        <div class="filter-option active">전체</div>
+        <div class="filter-option">업무 자동화</div>
+        <div class="filter-option">문서 처리</div>
+        <div class="filter-option">커뮤니케이션</div>
+        <div class="filter-option">데이터 분석</div>
+        <div class="filter-option">디자인</div>
+    </div>
+    
+    <!-- 기능 카드 섹션 제목 -->
+    <div class="section-title">인기 기능</div>
+    
+    <!-- 기능 카드 -->
+    <div class="features">
+        <div class="feature-card">
+            <div class="feature-icon brain-icon">💡</div>
+            <div class="feature-title">발상의 전환가</div>
+            <div class="feature-desc">복잡한 문제를 창의적으로 해결하고 새로운 아이디어 제안</div>
+            <div class="bookmark-icon active">★</div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon chat-icon">👄</div>
+            <div class="feature-title">소통의 달인</div>
+            <div class="feature-desc">이메일, 채팅 답변, 메시지 작성 및 의사소통 지원</div>
+            <div class="bookmark-icon">★</div>
+            <div class="update-badge">NEW</div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon search-icon">📑</div>
+            <div class="feature-title">자료 분석사</div>
+            <div class="feature-desc">문서 자동 요약, 중요 정보 추출, 인사이트 도출</div>
+            <div class="bookmark-icon">★</div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon translate-icon">🌐</div>
+            <div class="feature-title">다국어 통역사</div>
+            <div class="feature-desc">실시간 번역, 외국어 문서 변환, 다국어 서식 유지</div>
+            <div class="bookmark-icon">★</div>
+        </div>
+    </div>
+    
+    <!-- 새로운 섹션 제목 -->
+    <div class="section-title">최근 업데이트</div>
+    
+    <!-- 추가 기능 카드 -->
+    <div class="features">
+        <div class="feature-card">
+            <div class="feature-icon" style="background: linear-gradient(135deg, #ffecb3, #ffe082); color: #e65100;">📊</div>
+            <div class="feature-title">데이터 마법사</div>
+            <div class="feature-desc">복잡한 데이터 분석 및 직관적인 시각화 자동 생성</div>
+            <div class="bookmark-icon">★</div>
+            <div class="update-badge">HOT</div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon" style="background: linear-gradient(135deg, #b2dfdb, #80cbc4); color: #00695c;">🖌️</div>
+            <div class="feature-title">이미지 크리에이터</div>
+            <div class="feature-desc">텍스트 설명으로 프레젠테이션용 이미지와 다이어그램 생성</div>
+            <div class="bookmark-icon">★</div>
+        </div>
+    </div>
+    
+    <!-- 헬프 버튼 -->
+    <div class="help-button">+</div>
+    
+    <!-- 바닥 네비게이션 -->
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <div class="nav-icon">🏠</div>
+            <div class="nav-label">홈</div>
+        </div>
+        
+        <div class="nav-item">
+            <div class="nav-icon">🔍</div>
+            <div class="nav-label">검색</div>
+        </div>
+        
+        <div class="nav-item">
+            <div class="nav-icon">📂</div>
+            <div class="nav-label">내 작업</div>
+        </div>
+        
+        <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <div class="nav-label">프로필</div>
+        </div>
+    </div>
+    
+    <!-- 하단 여백 -->
+    <div class="bottom-space"></div>
+    
+    <script>
+        // 필터 옵션 클릭 이벤트
+        const filterOptions = document.querySelectorAll('.filter-option');
+        filterOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                filterOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+            });
+        });
+        
+        // 탭 클릭 이벤트
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+        
+        // 북마크 클릭 이벤트
+        const bookmarkIcons = document.querySelectorAll('.bookmark-icon');
+        bookmarkIcons.forEach(bookmark => {
+            bookmark.addEventListener('click', (e) => {
+                e.stopPropagation();
+                bookmark.classList.toggle('active');
+            });
+        });
+        
+        // 네비게이션 아이템 클릭 이벤트
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
