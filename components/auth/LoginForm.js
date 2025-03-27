@@ -1,24 +1,69 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import axios from 'axios';
+
+// API 기본 URL을 환경에 따라 동적으로 설정
+const getApiBaseUrl = () => {
+  // 브라우저 환경에서만 window 객체에 접근
+  if (typeof window !== 'undefined') {
+    // 로컬 개발 환경인 경우
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:8080';
+    } 
+    // ngrok 등의 프록시를 통한 접근인 경우, 백엔드 ngrok URL 사용
+    // 아래 URL을 실제 백엔드 ngrok URL로 변경해야 합니다
+    return 'https://백엔드-ngrok-url.ngrok-free.app';
+  }
+  // 서버 사이드 렌더링 시 기본값
+  return 'http://localhost:8080';
+};
 
 const LoginForm = () => {
   const [isEmailLogin, setIsEmailLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setErrorMsg('');
     
-    // 1단계: 하드코딩된 user/user 계정으로만 로그인 가능
-    if (email === 'user' && password === 'user') {
+    try {
+      // Next.js API 라우트를 통해 백엔드 API 호출
+      const response = await axios.post('/api/auth/login', {
+        username: email,
+        password: password
+      });
+      
+      // 로그인 성공 시 토큰 저장 및 리다이렉트
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userEmail', email);
-      router.push('/');  // 로그인 성공 시 메인 채팅 페이지로 이동
-    } else {
-      setErrorMsg('아이디 또는 비밀번호가 올바르지 않습니다. (힌트: user/user)');
+      localStorage.setItem('token', response.data.token);
+      console.log('백엔드 로그인 성공:', response.data);
+      router.push('/');
+      
+      /* 백엔드 서버 연동 후에는 하드코딩된 로그인 제거
+      if (email === 'user' && password === 'user') {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', email);
+        router.push('/');
+      } else {
+        setErrorMsg('아이디 또는 비밀번호가 올바르지 않습니다. (힌트: user/user)');
+      }
+      */
+    } catch (error) {
+      console.error('로그인 에러:', error);
+      if (error.response) {
+        setErrorMsg(`로그인 실패: ${error.response.data}`);
+      } else {
+        setErrorMsg('로그인 중 오류가 발생했습니다. 서버 연결을 확인해주세요.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,8 +139,9 @@ const LoginForm = () => {
             <button
               type="submit"
               className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              disabled={isLoading}
             >
-              로그인
+              {isLoading ? '로그인 중...' : '로그인'}
             </button>
           </div>
           <div className="mt-2 text-center text-sm text-gray-500">
