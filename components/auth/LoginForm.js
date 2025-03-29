@@ -21,8 +21,8 @@ const getApiBaseUrl = () => {
 
 const LoginForm = () => {
   const [isEmailLogin, setIsEmailLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('user');
+  const [password, setPassword] = useState('user');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
