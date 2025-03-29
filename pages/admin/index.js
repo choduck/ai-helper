@@ -16,8 +16,14 @@ const DUMMY_USERS = [
 const AdminPage = () => {
   const router = useRouter();
   const [activeMenu, setActiveMenu] = useState('users');
-  const [users, setUsers] = useState(DUMMY_USERS);
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   
   // 실제 구현에서는 여기서 인증 체크 필요
   useEffect(() => {
@@ -31,12 +37,96 @@ const AdminPage = () => {
     }
   }, [router]);
   
-  // 검색 기능
-  const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 사용자 목록 로딩
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const token = localStorage.getItem('token');
+        
+        // API를 통해 사용자 목록 조회
+        const response = await fetch(`/api/admin/users?page=${currentPage}&size=${pageSize}&search=${searchTerm}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('사용자 목록을 불러오는데 실패했습니다.');
+        }
+        
+        const data = await response.json();
+        setUsers(data.users || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
+        setCurrentPage(data.currentPage || 1);
+      } catch (err) {
+        console.error('사용자 목록 조회 에러:', err);
+        setError('사용자 목록을 불러오는데 실패했습니다. ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (activeMenu === 'users') {
+      fetchUsers();
+    }
+  }, [activeMenu, currentPage, pageSize, searchTerm]);
+  
+  // 사용자 삭제 처리
+  const handleDeleteUser = async (userId) => {
+    if (!confirm('정말 이 사용자를 삭제하시겠습니까?')) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('사용자 삭제에 실패했습니다.');
+      }
+      
+      // 성공 시 목록 새로고침
+      setUsers(users.filter(user => user.id !== userId));
+      alert('사용자가 삭제되었습니다.');
+    } catch (err) {
+      console.error('사용자 삭제 에러:', err);
+      alert('사용자 삭제에 실패했습니다. ' + err.message);
+    }
+  };
+  
+  // 페이지 변경 처리
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+  
+  // 검색 처리
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setCurrentPage(1); // 검색 시 첫 페이지로 이동
+  };
+  
+  // 검색어 입력 시 딜레이 검색 (타이핑 후 500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (activeMenu === 'users') {
+        setCurrentPage(1); // 검색어 변경 시 첫 페이지로 이동
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // 필터링된 사용자 목록 (더 이상 필요 없음 - API에서 처리)
+  const filteredUsers = users;
   
   return (
     <>
@@ -105,118 +195,179 @@ const AdminPage = () => {
               <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">사용자 관리</h1>
                 <div className="flex">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="w-64 px-4 py-2 pr-8 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="이름, 이메일, 역할로 검색..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <span className="absolute right-3 top-2.5 text-gray-400">
-                      🔍
-                    </span>
-                  </div>
+                  <form onSubmit={handleSearch} className="flex">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="w-64 px-4 py-2 pr-8 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="이름, 이메일, 역할로 검색..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      <span className="absolute right-3 top-2.5 text-gray-400">
+                        🔍
+                      </span>
+                    </div>
+                    <button type="submit" className="hidden">검색</button>
+                  </form>
                   <button className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     새 사용자 추가
                   </button>
                 </div>
               </div>
               
-              {/* 사용자 목록 테이블 */}
-              <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        사용자명
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        이메일
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        역할
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        마지막 로그인
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        작업
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="text-blue-600 font-bold">{user.username.charAt(0).toUpperCase()}</span>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.email}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.role === '관리자' ? 'bg-red-100 text-red-800' : 
-                            user.role === '개발자' ? 'bg-purple-100 text-purple-800' : 
-                            user.role === '테스터' ? 'bg-yellow-100 text-yellow-800' : 
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.lastLogin}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button className="text-blue-600 hover:text-blue-900 mr-3">
-                            편집
-                          </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            삭제
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* 오류 메시지 표시 */}
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                  <strong className="font-bold">오류:</strong>
+                  <span className="block sm:inline"> {error}</span>
+                </div>
+              )}
               
-              {/* 페이지네이션 */}
-              <div className="flex justify-between items-center mt-4">
-                <div className="text-sm text-gray-500">
-                  총 {filteredUsers.length}명의 사용자
+              {/* 로딩 상태 표시 */}
+              {loading ? (
+                <div className="bg-white shadow-md rounded-lg p-8 flex justify-center">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                    <p className="text-gray-500">사용자 데이터를 불러오는 중...</p>
+                  </div>
                 </div>
-                <div className="flex">
-                  <button className="px-3 py-1 border rounded-l-md bg-white text-gray-700 hover:bg-gray-50">
-                    이전
-                  </button>
-                  <button className="px-3 py-1 border-t border-b bg-blue-600 text-white">
-                    1
-                  </button>
-                  <button className="px-3 py-1 border-t border-b bg-white text-gray-700 hover:bg-gray-50">
-                    2
-                  </button>
-                  <button className="px-3 py-1 border-t border-b bg-white text-gray-700 hover:bg-gray-50">
-                    3
-                  </button>
-                  <button className="px-3 py-1 border rounded-r-md bg-white text-gray-700 hover:bg-gray-50">
-                    다음
-                  </button>
-                </div>
-              </div>
+              ) : (
+                <>
+                  {/* 사용자 목록 테이블 */}
+                  <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                    {users.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        사용자가 없거나 검색 결과가 없습니다.
+                      </div>
+                    ) : (
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ID
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              사용자명
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              이메일
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              역할
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              마지막 로그인
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              작업
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredUsers.map((user) => (
+                            <tr key={user.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {user.id}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <span className="text-blue-600 font-bold">{user.username.charAt(0).toUpperCase()}</span>
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {user.email}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  user.role === 'ADMIN' ? 'bg-red-100 text-red-800' : 
+                                  user.role === 'DEVELOPER' ? 'bg-purple-100 text-purple-800' : 
+                                  user.role === 'TESTER' ? 'bg-yellow-100 text-yellow-800' : 
+                                  'bg-green-100 text-green-800'
+                                }`}>
+                                  {user.role}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : '로그인 기록 없음'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button 
+                                  onClick={() => router.push(`/admin/users/${user.id}`)}
+                                  className="text-blue-600 hover:text-blue-900 mr-3"
+                                >
+                                  편집
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  삭제
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  
+                  {/* 페이지네이션 */}
+                  <div className="flex justify-between items-center mt-4">
+                    <div className="text-sm text-gray-500">
+                      총 {totalItems}명의 사용자 ({currentPage} / {totalPages} 페이지)
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="flex">
+                        <button 
+                          className={`px-3 py-1 border rounded-l-md bg-white text-gray-700 hover:bg-gray-50 ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage <= 1}
+                        >
+                          이전
+                        </button>
+                        
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          // 현재 페이지 주변의 페이지 번호만 표시
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <button
+                              key={pageNum}
+                              className={`px-3 py-1 border-t border-b ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                              onClick={() => handlePageChange(pageNum)}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                        
+                        <button 
+                          className={`px-3 py-1 border rounded-r-md bg-white text-gray-700 hover:bg-gray-50 ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage >= totalPages}
+                        >
+                          다음
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
           
