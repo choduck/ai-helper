@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { FiMenu, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiMenu, FiLogOut, FiUser, FiSettings } from 'react-icons/fi';
 import axios from 'axios';
 
 const Header = () => {
@@ -78,6 +78,11 @@ const Header = () => {
                     <span>{userEmail}</span>
                   </div>
                 )}
+                <Link href="/admin">
+                  <span className="ml-4 w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 hover:bg-blue-200 focus:outline-none cursor-pointer" title="관리자 모드">
+                    <FiSettings className="h-4 w-4 text-blue-600" />
+                  </span>
+                </Link>
                 <button 
                   onClick={handleLogout}
                   className="ml-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 focus:outline-none"
@@ -88,6 +93,11 @@ const Header = () => {
               </div>
             </div>
             <div className="flex items-center ml-4">
+              <Link href="/admin" className="md:hidden">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 focus:outline-none mr-4" title="관리자 모드">
+                  <FiSettings className="h-4 w-4 text-blue-600" />
+                </span>
+              </Link>
               <button className="flex items-center text-sm font-medium text-gray-700 focus:outline-none">
                 <span>테스크 모드</span>
                 <svg className="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
