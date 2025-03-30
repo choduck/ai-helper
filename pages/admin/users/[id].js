@@ -18,13 +18,20 @@ const UserDetailPage = () => {
     role: 'USER',
     name: '',
     status: 'ACTIVE',
-    // 비밀번호는 보안상 상세 페이지에서는 포함하지 않음
   });
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
     confirmPassword: '',
   });
   const [errors, setErrors] = useState({});
+  
+  // 디버깅을 위한 변수
+  const [debugInfo, setDebugInfo] = useState({ 
+    rawData: null,
+    hasFullname: false,
+    hasName: false,
+    initialFormData: null
+  });
   
   // 유저 데이터 로드
   useEffect(() => {
@@ -47,14 +54,47 @@ const UserDetailPage = () => {
         }
         
         const userData = await response.json();
-        setUser(userData);
-        setFormData({
+        
+        // 디버깅용 로그
+        console.log('백엔드에서 받은 사용자 데이터:', userData);
+        console.log('fullname 필드 존재 여부:', !!userData.fullname);
+        console.log('name 필드 존재 여부:', !!userData.name);
+        
+        // 디버깅 정보 설정
+        setDebugInfo({
+          rawData: userData,
+          hasFullname: !!userData.fullname,
+          hasName: !!userData.name,
+          initialFormData: null
+        });
+        
+        // 확실히 폼 데이터에 이름 설정
+        const formattedName = userData.fullname || userData.name || '';
+        console.log('설정할 이름 값:', formattedName);
+        
+        // userData에 name 필드 명시적 추가
+        userData.name = formattedName;
+        
+        // 사용자 데이터 상태 업데이트
+        setUser({...userData, name: formattedName});
+        
+        // 폼 데이터 초기화 (명시적 지연 설정으로 순서 보장)
+        const newFormData = {
           username: userData.username || '',
           email: userData.email || '',
           role: userData.role || 'USER',
-          name: userData.name || '',
+          name: formattedName, // 명시적으로 이름 지정
           status: userData.status || 'ACTIVE',
-        });
+        };
+        
+        // 디버깅 정보 업데이트
+        setDebugInfo(prev => ({
+          ...prev,
+          initialFormData: newFormData
+        }));
+        
+        console.log('설정할 폼 데이터:', newFormData);
+        setFormData(newFormData);
       } catch (err) {
         console.error('사용자 정보 조회 에러:', err);
         setError('사용자 정보를 불러오는데 실패했습니다.');
@@ -69,6 +109,7 @@ const UserDetailPage = () => {
   // 입력 필드 변경 처리
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`필드 변경: ${name} = ${value}`);
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -132,6 +173,15 @@ const UserDetailPage = () => {
     setError(null);
     
     try {
+      // name을 fullname으로 변환
+      const dataToSubmit = { ...formData };
+      if (dataToSubmit.name) {
+        dataToSubmit.fullname = dataToSubmit.name;
+        delete dataToSubmit.name; // 백엔드가 name 필드를 사용하지 않으므로 제거
+      }
+      
+      console.log('서버로 전송할 데이터:', dataToSubmit);
+      
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/users/${id}`, {
         method: 'PUT',
@@ -139,7 +189,7 @@ const UserDetailPage = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSubmit)
       });
       
       if (!response.ok) {
@@ -147,7 +197,19 @@ const UserDetailPage = () => {
       }
       
       const updatedUser = await response.json();
+      console.log('응답 받은 사용자 데이터:', updatedUser);
+      
+      // 응답 데이터의 fullname을 name으로 매핑
+      const formattedName = updatedUser.fullname || updatedUser.name || '';
+      updatedUser.name = formattedName;
+      
       setUser(updatedUser);
+      // 폼 데이터도 업데이트
+      setFormData(prev => ({
+        ...prev,
+        name: formattedName
+      }));
+      
       alert('사용자 정보가 성공적으로 수정되었습니다.');
     } catch (err) {
       console.error('사용자 정보 수정 에러:', err);
@@ -241,6 +303,48 @@ const UserDetailPage = () => {
       </Head>
       
       <div className="min-h-screen bg-gray-100">
+        {/* 디버깅 정보 표시 */}
+        <div className="bg-yellow-100 p-4 border-l-4 border-yellow-500">
+          <h3 className="font-bold">디버깅 정보:</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold mt-2">사용자 데이터:</h4>
+              <pre className="text-xs overflow-auto max-h-32 bg-white p-2 rounded">
+                {user ? JSON.stringify(user, null, 2) : '사용자 데이터 없음'}
+              </pre>
+            </div>
+            <div>
+              <h4 className="font-semibold mt-2">폼 데이터:</h4>
+              <pre className="text-xs overflow-auto max-h-32 bg-white p-2 rounded">
+                {JSON.stringify(formData, null, 2)}
+              </pre>
+            </div>
+          </div>
+          <div className="mt-2">
+            <h4 className="font-semibold">초기 폼 데이터:</h4>
+            <pre className="text-xs overflow-auto max-h-24 bg-white p-2 rounded">
+              {debugInfo.initialFormData ? JSON.stringify(debugInfo.initialFormData, null, 2) : '초기 폼 데이터 없음'}
+            </pre>
+          </div>
+          <p className="mt-2 text-sm">
+            <strong>필드 존재 여부:</strong> 
+            fullname={debugInfo.hasFullname ? '있음' : '없음'}, 
+            name={debugInfo.hasName ? '있음' : '없음'}
+          </p>
+          <button 
+            className="mt-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs"
+            onClick={() => {
+              // 강제로 name 필드 설정
+              setFormData(prev => ({
+                ...prev,
+                name: user?.fullname || user?.name || '이름 직접 설정'
+              }));
+            }}
+          >
+            이름 필드 강제 설정
+          </button>
+        </div>
+        
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center justify-between">
             <div className="flex items-center">
@@ -324,10 +428,21 @@ const UserDetailPage = () => {
                       <input
                         type="text"
                         name="name"
+                        id="name"
                         className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                        value={formData.name}
+                        value={formData.name || ''}
                         onChange={handleChange}
+                        placeholder="이름을 입력하세요"
                       />
+                      <div className="mt-1 text-xs text-gray-500">
+                        현재 이름 값: "{formData.name || '없음'}", 
+                        원본 fullname: "{user?.fullname || '없음'}", 
+                        원본 name: "{user?.name || '없음'}"
+                      </div>
+                      <div className="mt-1 text-xs text-gray-400">
+                        필드 존재 여부: fullname={debugInfo.hasFullname ? 'O' : 'X'}, 
+                        name={debugInfo.hasName ? 'O' : 'X'}
+                      </div>
                     </dd>
                   </div>
                   

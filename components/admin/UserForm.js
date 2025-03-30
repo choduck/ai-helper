@@ -23,7 +23,7 @@ const UserForm = ({ isOpen, onClose, onSubmit, user = null, isEditMode = false }
         password: '', // 비밀번호는 빈 값으로 설정
         confirmPassword: '',
         role: user.role || 'USER',
-        name: user.name || '',
+        name: user.fullname || user.name || '', // fullname과 name 모두 체크
         status: user.status || 'ACTIVE',
       });
     } else {
@@ -95,6 +95,12 @@ const UserForm = ({ isOpen, onClose, onSubmit, user = null, isEditMode = false }
       // 편집 모드에서 비밀번호를 변경하지 않는 경우 비밀번호 필드 제외
       if (isEditMode && !dataToSubmit.password) {
         delete dataToSubmit.password;
+      }
+      
+      // name을 fullname으로 변환
+      if (dataToSubmit.name) {
+        dataToSubmit.fullname = dataToSubmit.name;
+        delete dataToSubmit.name; // 백엔드가 name 필드를 사용하지 않으므로 제거
       }
       
       await onSubmit(dataToSubmit);

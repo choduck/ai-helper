@@ -3,8 +3,7 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/login": "pages/login.js",
-  "/admin": "pages/admin.js",
-  "/api/admin/users": "pages/api/admin/users.js",
   "/": "pages/index.js",
-  "/api/admin/users/[id]": "pages/api/admin/users/[id].js"
+  "/admin": "pages/admin.js",
+  "/api/auth/login": "pages/api/auth/login.js"
 }

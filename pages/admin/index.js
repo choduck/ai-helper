@@ -63,7 +63,14 @@ const AdminPage = () => {
       }
       
       const data = await response.json();
-      setUsers(data.users || []);
+      
+      // fullname 필드를 name 필드로 매핑
+      const mappedUsers = (data.users || []).map(user => ({
+        ...user,
+        name: user.fullname || user.name || '',
+      }));
+      
+      setUsers(mappedUsers);
       setTotalPages(data.totalPages || 1);
       setTotalItems(data.totalItems || 0);
       setCurrentPage(data.currentPage || 1);
@@ -102,7 +109,7 @@ const AdminPage = () => {
       }
       
       // 성공 시 목록 새로고침
-      setUsers(users.filter(user => user.id !== userId));
+      setUsers(users.filter(user => user.user_id !== userId));
       alert('사용자가 삭제되었습니다.');
       
       // 필요한 경우 목록 전체 갱신 (사용자가 적어져서 페이지가 줄어들 수 있음)
@@ -161,17 +168,24 @@ const AdminPage = () => {
     const token = localStorage.getItem('token');
     
     try {
+      // 필드 이름 매핑 (name -> fullname)
+      const dataToSubmit = { ...userData };
+      if (dataToSubmit.name) {
+        dataToSubmit.fullname = dataToSubmit.name;
+        delete dataToSubmit.name;
+      }
+      
       let response;
       
       if (isEditMode) {
         // 사용자 수정
-        response = await fetch(`/api/admin/users/${editUser.id}`, {
+        response = await fetch(`/api/admin/users/${editUser.user_id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(userData)
+          body: JSON.stringify(dataToSubmit)
         });
       } else {
         // 새 사용자 추가
@@ -181,7 +195,7 @@ const AdminPage = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(userData)
+          body: JSON.stringify(dataToSubmit)
         });
       }
       
@@ -191,11 +205,17 @@ const AdminPage = () => {
       }
       
       // 성공 시 사용자 정보 업데이트
-      const updatedUser = await response.json();
+      const updatedUserData = await response.json();
+      
+      // fullname 필드를 name 필드로 매핑
+      const updatedUser = {
+        ...updatedUserData,
+        name: updatedUserData.fullname || updatedUserData.name || '',
+      };
       
       if (isEditMode) {
         // 편집 모드에서는 현재 목록에서 해당 사용자만 업데이트
-        setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+        setUsers(users.map(user => user.user_id === updatedUser.user_id ? updatedUser : user));
         alert('사용자 정보가 수정되었습니다.');
       } else {
         // 추가 모드에서는 첫 페이지로 이동 후 전체 목록 새로고침
@@ -353,9 +373,9 @@ const AdminPage = () => {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {filteredUsers.map((user) => (
-                            <tr key={user.id} className="hover:bg-gray-50">
+                            <tr key={user.user_id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {user.id}
+                                {user.user_id}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
@@ -391,7 +411,7 @@ const AdminPage = () => {
                                   편집
                                 </button>
                                 <button 
-                                  onClick={() => handleDeleteUser(user.id)}
+                                  onClick={() => handleDeleteUser(user.user_id)}
                                   className="text-red-600 hover:text-red-900"
                                 >
                                   삭제
