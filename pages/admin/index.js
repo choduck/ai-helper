@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { FiUsers, FiMessageSquare, FiSettings, FiDatabase, FiBarChart2, FiList } from 'react-icons/fi';
+import UserForm from '../../components/admin/UserForm';
 
 // 사용자 목록 더미 데이터
 const DUMMY_USERS = [
@@ -25,6 +26,11 @@ const AdminPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   
+  // 사용자 폼 상태
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   // 실제 구현에서는 여기서 인증 체크 필요
   useEffect(() => {
     // 클라이언트 사이드에서만 실행
@@ -38,38 +44,39 @@ const AdminPage = () => {
   }, [router]);
   
   // 사용자 목록 로딩
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const token = localStorage.getItem('token');
-        
-        // API를 통해 사용자 목록 조회
-        const response = await fetch(`/api/admin/users?page=${currentPage}&size=${pageSize}&search=${searchTerm}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('사용자 목록을 불러오는데 실패했습니다.');
-        }
-        
-        const data = await response.json();
-        setUsers(data.users || []);
-        setTotalPages(data.totalPages || 1);
-        setTotalItems(data.totalItems || 0);
-        setCurrentPage(data.currentPage || 1);
-      } catch (err) {
-        console.error('사용자 목록 조회 에러:', err);
-        setError('사용자 목록을 불러오는데 실패했습니다. ' + err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
     
+    try {
+      const token = localStorage.getItem('token');
+      
+      // API를 통해 사용자 목록 조회
+      const response = await fetch(`/api/admin/users?page=${currentPage}&size=${pageSize}&search=${searchTerm}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('사용자 목록을 불러오는데 실패했습니다.');
+      }
+      
+      const data = await response.json();
+      setUsers(data.users || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalItems(data.totalItems || 0);
+      setCurrentPage(data.currentPage || 1);
+    } catch (err) {
+      console.error('사용자 목록 조회 에러:', err);
+      setError('사용자 목록을 불러오는데 실패했습니다. ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 사용자 목록 로딩
+  useEffect(() => {
     if (activeMenu === 'users') {
       fetchUsers();
     }
@@ -97,6 +104,13 @@ const AdminPage = () => {
       // 성공 시 목록 새로고침
       setUsers(users.filter(user => user.id !== userId));
       alert('사용자가 삭제되었습니다.');
+      
+      // 필요한 경우 목록 전체 갱신 (사용자가 적어져서 페이지가 줄어들 수 있음)
+      if (users.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchUsers();
+      }
     } catch (err) {
       console.error('사용자 삭제 에러:', err);
       alert('사용자 삭제에 실패했습니다. ' + err.message);
@@ -127,6 +141,76 @@ const AdminPage = () => {
   
   // 필터링된 사용자 목록 (더 이상 필요 없음 - API에서 처리)
   const filteredUsers = users;
+  
+  // 사용자 추가 모달 열기
+  const handleAddUser = () => {
+    setEditUser(null);
+    setIsEditMode(false);
+    setIsFormOpen(true);
+  };
+  
+  // 사용자 편집 모달 열기
+  const handleEditUser = (user) => {
+    setEditUser(user);
+    setIsEditMode(true);
+    setIsFormOpen(true);
+  };
+  
+  // 사용자 저장 처리 (추가 또는 수정)
+  const handleSaveUser = async (userData) => {
+    const token = localStorage.getItem('token');
+    
+    try {
+      let response;
+      
+      if (isEditMode) {
+        // 사용자 수정
+        response = await fetch(`/api/admin/users/${editUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(userData)
+        });
+      } else {
+        // 새 사용자 추가
+        response = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(userData)
+        });
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '사용자 저장에 실패했습니다.');
+      }
+      
+      // 성공 시 사용자 정보 업데이트
+      const updatedUser = await response.json();
+      
+      if (isEditMode) {
+        // 편집 모드에서는 현재 목록에서 해당 사용자만 업데이트
+        setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+        alert('사용자 정보가 수정되었습니다.');
+      } else {
+        // 추가 모드에서는 첫 페이지로 이동 후 전체 목록 새로고침
+        setCurrentPage(1);
+        // 사용자 목록 즉시 갱신
+        setTimeout(() => fetchUsers(), 100);
+        alert('새 사용자가 추가되었습니다.');
+      }
+      
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('사용자 저장 에러:', err);
+      throw err;
+    }
+  };
   
   return (
     <>
@@ -210,7 +294,10 @@ const AdminPage = () => {
                     </div>
                     <button type="submit" className="hidden">검색</button>
                   </form>
-                  <button className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <button 
+                    onClick={handleAddUser} 
+                    className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
                     새 사용자 추가
                   </button>
                 </div>
@@ -298,7 +385,7 @@ const AdminPage = () => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button 
-                                  onClick={() => router.push(`/admin/users/${user.id}`)}
+                                  onClick={() => handleEditUser(user)}
                                   className="text-blue-600 hover:text-blue-900 mr-3"
                                 >
                                   편집
@@ -386,6 +473,15 @@ const AdminPage = () => {
           )}
         </div>
       </div>
+      
+      {/* 사용자 추가/편집 모달 */}
+      <UserForm 
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleSaveUser}
+        user={editUser}
+        isEditMode={isEditMode}
+      />
     </>
   );
 };
