@@ -2,6 +2,7 @@ import '../styles/globals.css';
 import Layout from '../components/layout/Layout';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { ChakraProvider } from '@chakra-ui/react';
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -28,9 +29,11 @@ function MyApp({ Component, pageProps }) {
   }
 
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <ChakraProvider>
+      <Layout>
+        <Component {...pageProps} />
+      </Layout>
+    </ChakraProvider>
   );
 }
 

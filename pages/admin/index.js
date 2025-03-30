@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { FiUsers, FiMessageSquare, FiSettings, FiDatabase, FiBarChart2, FiList } from 'react-icons/fi';
+import { FiUsers, FiMessageSquare, FiSettings, FiDatabase, FiBarChart2, FiList, FiCreditCard } from 'react-icons/fi';
 import UserForm from '../../components/admin/UserForm';
+import TokenUsageManagement from '../../components/admin/TokenUsageManagement';
 
 // 사용자 목록 더미 데이터
 const DUMMY_USERS = [
@@ -232,277 +233,300 @@ const AdminPage = () => {
     }
   };
   
-  return (
-    <>
-      <Head>
-        <title>관리자 모드 - AI헬퍼</title>
-      </Head>
-      
-      <div className="min-h-screen bg-gray-100">
-        {/* 상단 가로 메뉴바 */}
-        <div className="bg-white shadow-md w-full">
-          <div className="max-w-7xl mx-auto">
-            <div className="p-4 bg-blue-600">
-              <h2 className="text-xl font-bold text-white">관리자 모드</h2>
-            </div>
-            <nav className="flex overflow-x-auto">
-              <div 
-                className={`p-4 flex items-center cursor-pointer whitespace-nowrap ${activeMenu === 'users' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
-                onClick={() => setActiveMenu('users')}
-              >
-                <FiUsers className="mr-2" />
-                <span>사용자 관리</span>
+  // 메뉴 렌더링 함수
+  const renderMenu = () => {
+    return (
+      <div className="flex flex-col sm:flex-row bg-gray-800 text-white p-2 sm:p-0">
+        <button
+          className={`flex items-center px-4 py-2 ${activeMenu === 'users' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+          onClick={() => setActiveMenu('users')}
+        >
+          <FiUsers className="mr-2" /> 사용자 관리
+        </button>
+        <button
+          className={`flex items-center px-4 py-2 ${activeMenu === 'token_usage' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+          onClick={() => setActiveMenu('token_usage')}
+        >
+          <FiBarChart2 className="mr-2" /> 토큰 사용량 관리
+        </button>
+        <button
+          className={`flex items-center px-4 py-2 ${activeMenu === 'conversations' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+          onClick={() => setActiveMenu('conversations')}
+        >
+          <FiMessageSquare className="mr-2" /> 대화 내역
+        </button>
+        <button
+          className={`flex items-center px-4 py-2 ${activeMenu === 'knowledge' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+          onClick={() => setActiveMenu('knowledge')}
+        >
+          <FiDatabase className="mr-2" /> 지식 베이스
+        </button>
+        <button
+          className={`flex items-center px-4 py-2 ${activeMenu === 'settings' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+          onClick={() => setActiveMenu('settings')}
+        >
+          <FiSettings className="mr-2" /> 시스템 설정
+        </button>
+      </div>
+    );
+  };
+
+  // 컨텐츠 렌더링 함수
+  const renderContent = () => {
+    switch (activeMenu) {
+      case 'users':
+        return renderUsersContent();
+      case 'token_usage':
+        return <TokenUsageManagement />;
+      case 'conversations':
+        return <div className="text-center p-8 text-gray-500">대화 내역 기능은 아직 구현되지 않았습니다.</div>;
+      case 'knowledge':
+        return <div className="text-center p-8 text-gray-500">지식 베이스 기능은 아직 구현되지 않았습니다.</div>;
+      case 'settings':
+        return <div className="text-center p-8 text-gray-500">시스템 설정 기능은 아직 구현되지 않았습니다.</div>;
+      default:
+        return renderUsersContent();
+    }
+  };
+
+  // 사용자 관리 컨텐츠
+  const renderUsersContent = () => {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">사용자 관리</h1>
+          <div className="flex">
+            <form onSubmit={handleSearch} className="flex">
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-64 px-4 py-2 pr-8 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="이름, 이메일, 역할로 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <span className="absolute right-3 top-2.5 text-gray-400">
+                  🔍
+                </span>
               </div>
-              <div 
-                className={`p-4 flex items-center cursor-pointer whitespace-nowrap ${activeMenu === 'chats' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
-                onClick={() => setActiveMenu('chats')}
-              >
-                <FiMessageSquare className="mr-2" />
-                <span>채팅 관리</span>
-              </div>
-              <div 
-                className={`p-4 flex items-center cursor-pointer whitespace-nowrap ${activeMenu === 'logs' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
-                onClick={() => setActiveMenu('logs')}
-              >
-                <FiList className="mr-2" />
-                <span>로그 관리</span>
-              </div>
-              <div 
-                className={`p-4 flex items-center cursor-pointer whitespace-nowrap ${activeMenu === 'stats' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
-                onClick={() => setActiveMenu('stats')}
-              >
-                <FiBarChart2 className="mr-2" />
-                <span>통계</span>
-              </div>
-              <div 
-                className={`p-4 flex items-center cursor-pointer whitespace-nowrap ${activeMenu === 'settings' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
-                onClick={() => setActiveMenu('settings')}
-              >
-                <FiSettings className="mr-2" />
-                <span>설정</span>
-              </div>
-              <div className="ml-auto p-4">
-                <Link href="/">
-                  <span className="text-blue-600 hover:text-blue-800 cursor-pointer whitespace-nowrap">
-                    ← 메인으로 돌아가기
-                  </span>
-                </Link>
-              </div>
-            </nav>
+              <button type="submit" className="hidden">검색</button>
+            </form>
+            <button 
+              onClick={handleAddUser} 
+              className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              새 사용자 추가
+            </button>
           </div>
         </div>
         
-        {/* 메인 컨텐츠 영역 */}
-        <div className="p-8 max-w-7xl mx-auto">
-          {activeMenu === 'users' && (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">사용자 관리</h1>
-                <div className="flex">
-                  <form onSubmit={handleSearch} className="flex">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        className="w-64 px-4 py-2 pr-8 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="이름, 이메일, 역할로 검색..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                      <span className="absolute right-3 top-2.5 text-gray-400">
-                        🔍
-                      </span>
-                    </div>
-                    <button type="submit" className="hidden">검색</button>
-                  </form>
-                  <button 
-                    onClick={handleAddUser} 
-                    className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    새 사용자 추가
-                  </button>
-                </div>
-              </div>
-              
-              {/* 오류 메시지 표시 */}
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                  <strong className="font-bold">오류:</strong>
-                  <span className="block sm:inline"> {error}</span>
-                </div>
-              )}
-              
-              {/* 로딩 상태 표시 */}
-              {loading ? (
-                <div className="bg-white shadow-md rounded-lg p-8 flex justify-center">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-                    <p className="text-gray-500">사용자 데이터를 불러오는 중...</p>
-                  </div>
+        {/* 오류 메시지 표시 */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong className="font-bold">오류:</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        )}
+        
+        {/* 로딩 상태 표시 */}
+        {loading ? (
+          <div className="bg-white shadow-md rounded-lg p-8 flex justify-center">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+              <p className="text-gray-500">사용자 데이터를 불러오는 중...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* 사용자 목록 테이블 */}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+              {users.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  사용자가 없거나 검색 결과가 없습니다.
                 </div>
               ) : (
-                <>
-                  {/* 사용자 목록 테이블 */}
-                  <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                    {users.length === 0 ? (
-                      <div className="p-8 text-center text-gray-500">
-                        사용자가 없거나 검색 결과가 없습니다.
-                      </div>
-                    ) : (
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              ID
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              사용자명
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              이메일
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              역할
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              마지막 로그인
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              작업
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredUsers.map((user) => (
-                            <tr key={user.user_id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {user.user_id}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <span className="text-blue-600 font-bold">{user.username.charAt(0).toUpperCase()}</span>
-                                  </div>
-                                  <div className="ml-4">
-                                    <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {user.email}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                  user.role === 'ADMIN' ? 'bg-red-100 text-red-800' : 
-                                  user.role === 'DEVELOPER' ? 'bg-purple-100 text-purple-800' : 
-                                  user.role === 'TESTER' ? 'bg-yellow-100 text-yellow-800' : 
-                                  'bg-green-100 text-green-800'
-                                }`}>
-                                  {user.role}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : '로그인 기록 없음'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button 
-                                  onClick={() => handleEditUser(user)}
-                                  className="text-blue-600 hover:text-blue-900 mr-3"
-                                >
-                                  편집
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteUser(user.user_id)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  삭제
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                  
-                  {/* 페이지네이션 */}
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="text-sm text-gray-500">
-                      총 {totalItems}명의 사용자 ({currentPage} / {totalPages} 페이지)
-                    </div>
-                    {totalPages > 1 && (
-                      <div className="flex">
-                        <button 
-                          className={`px-3 py-1 border rounded-l-md bg-white text-gray-700 hover:bg-gray-50 ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage <= 1}
-                        >
-                          이전
-                        </button>
-                        
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          // 현재 페이지 주변의 페이지 번호만 표시
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-                          
-                          return (
-                            <button
-                              key={pageNum}
-                              className={`px-3 py-1 border-t border-b ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                              onClick={() => handlePageChange(pageNum)}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
-                        
-                        <button 
-                          className={`px-3 py-1 border rounded-r-md bg-white text-gray-700 hover:bg-gray-50 ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage >= totalPages}
-                        >
-                          다음
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        사용자명
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        이메일
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        역할
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        마지막 로그인
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        작업
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredUsers.map((user) => (
+                      <tr key={user.user_id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.user_id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <span className="text-blue-600 font-bold">{user.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.email}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            user.role === 'ADMIN' ? 'bg-red-100 text-red-800' : 
+                            user.role === 'DEVELOPER' ? 'bg-purple-100 text-purple-800' : 
+                            user.role === 'TESTER' ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : '로그인 기록 없음'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button 
+                            onClick={() => handleEditUser(user)}
+                            className="text-blue-600 hover:text-blue-900 mr-3"
+                          >
+                            편집
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(user.user_id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            삭제
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
-          )}
-          
-          {activeMenu !== 'users' && (
-            <div className="flex items-center justify-center h-96">
-              <div className="text-center">
-                <h2 className="text-xl text-gray-500">
-                  {activeMenu === 'chats' && '채팅 관리'}
-                  {activeMenu === 'logs' && '로그 관리'}
-                  {activeMenu === 'stats' && '통계'}
-                  {activeMenu === 'settings' && '설정'}
-                </h2>
-                <p className="mt-2 text-gray-400">해당 기능은 아직 개발 중입니다.</p>
+            
+            {/* 페이지네이션 */}
+            <div className="flex justify-between items-center mt-4">
+              <div className="text-sm text-gray-500">
+                총 {totalItems}명의 사용자 ({currentPage} / {totalPages} 페이지)
               </div>
+              {totalPages > 1 && (
+                <div className="flex">
+                  <button 
+                    className={`px-3 py-1 border rounded-l-md bg-white text-gray-700 hover:bg-gray-50 ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                  >
+                    이전
+                  </button>
+                  
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // 현재 페이지 주변의 페이지 번호만 표시
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`px-3 py-1 border-t border-b ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  <button 
+                    className={`px-3 py-1 border rounded-r-md bg-white text-gray-700 hover:bg-gray-50 ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                  >
+                    다음
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <Head>
+        <title>관리자 모드 - AI헬퍼</title>
+        <meta name="description" content="AI헬퍼 관리자 모드" />
+      </Head>
       
-      {/* 사용자 추가/편집 모달 */}
-      <UserForm 
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleSaveUser}
-        user={editUser}
-        isEditMode={isEditMode}
-      />
-    </>
+      <header className="bg-white shadow-sm p-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-white">관리자 모드</h2>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600">관리자님 환영합니다</span>
+          <button 
+            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('isLoggedIn');
+              router.push('/login');
+            }}
+          >
+            로그아웃
+          </button>
+        </div>
+      </header>
+      
+      {renderMenu()}
+      
+      <main className="container mx-auto p-4">
+        {error && (
+          <div className="bg-red-100 text-red-800 p-4 rounded-md mb-4">
+            <h3 className="font-bold">오류 발생</h3>
+            <p>{error}</p>
+          </div>
+        )}
+        
+        {renderContent()}
+      </main>
+      
+      {/* 사용자 관리 폼 모달 */}
+      {isFormOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-xl">
+            <UserForm 
+              user={editUser} 
+              isEditMode={isEditMode} 
+              onSave={handleSaveUser} 
+              onCancel={() => setIsFormOpen(false)} 
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
