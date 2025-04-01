@@ -1,8 +1,41 @@
 import axios from 'axios';
 
-// 백엔드 서버 URL
-const BACKEND_URL = 'http://localhost:8080';
+// 백엔드 서버 URL - 환경 변수에서 가져오거나 현재 도메인과 포트를 기반으로 설정
+let BACKEND_URL;
 
+// Next.js의 환경 변수가 있으면 사용
+if (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_BACKEND_URL) {
+  BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+} 
+// 환경 변수가 없으면 기본값으로 설정
+else {
+  // 브라우저 환경에서 실행 중이면 현재 호스트를 기준으로 API URL 구성
+  if (typeof window !== 'undefined') {
+    // 프로덕션 환경에서는 동일한 호스트의 8080 포트 사용
+    // 이는 EC2 환경에서 작동하도록 함
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1';
+    
+    if (isLocalhost) {
+      // 로컬 개발 환경
+      BACKEND_URL = 'http://localhost:8080';
+    } else {
+      // 프로덕션 환경 (EC2 등)
+      // 동일한 호스트의 다른 포트 또는 API 경로
+      // EC2의 IP 또는 도메인을 사용하고 포트도 지정
+      BACKEND_URL = `http://${window.location.hostname}:8080`;
+    }
+  } else {
+    // 서버 사이드 렌더링 중 기본값
+    BACKEND_URL = 'http://localhost:8080';
+  }
+}
+
+// 백엔드 URL 로깅
+// 브라우저 환경에서만 window 객체에 접근
+if (typeof window !== 'undefined') {
+  console.log('💬 window.location.hostname :', window.location.hostname + ' 설정된 백엔드 URL:', BACKEND_URL + ' 현재 호스트:', window.location.hostname  );
+}
 /**
  * 채팅 관련 API 호출을 처리하는 서비스
  */
@@ -124,8 +157,75 @@ const chatService = {
     console.log('💬 chatService - 메시지 생성:', role);
     return {
       role,
-      content
+      content,
+      timestamp: new Date().toISOString()
     };
+  },
+  
+  /**
+   * 대화 내역 저장 함수
+   * @param {string} conversationId - 대화 ID (없으면 새로 생성)
+   * @param {Array} messages - 저장할 메시지 목록
+   * @returns {Promise<Object>} - 저장 결과
+   */
+  async saveConversation(conversationId, messages) {
+    // 로컬 스토리지에서 인증 토큰 가져오기
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    
+    if (!token) {
+      throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
+    }
+    
+    const response = await fetch(`${BACKEND_URL}/api/conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        conversationId,
+        messages
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `대화 저장 실패: ${response.status}`);
+    }
+    
+    return await response.json();
+  },
+  
+  /**
+   * 대화 내역 조회 함수
+   * @param {string} conversationId - 조회할 대화 ID
+   * @returns {Promise<Object>} - 대화 내역
+   */
+  async getConversation(conversationId) {
+    // 로컬 스토리지에서 인증 토큰 가져오기
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    
+    if (!token) {
+      throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
+    }
+    
+    const response = await fetch(`${BACKEND_URL}/api/conversations/${conversationId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('대화를 찾을 수 없습니다.');
+      }
+      
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `대화 조회 실패: ${response.status}`);
+    }
+    
+    return await response.json();
   }
 };
 
